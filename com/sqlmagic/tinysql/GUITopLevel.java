@@ -1,11 +1,14 @@
 package com.sqlmagic.tinysql;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.EventQueue;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+import javax.swing.JFileChooser;
+import javax.swing.ListSelectionModel;
 import javax.swing.UIManager;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
@@ -22,32 +25,84 @@ import javax.swing.JButton;
 import java.awt.Font;
 import javax.swing.SwingConstants;
 import javax.swing.JList;
+import javax.swing.JCheckBoxMenuItem;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.io.File;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Vector;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.ListSelectionEvent;
 
 public class GUITopLevel extends JFrame {
 
+	// GUI components
 	private JPanel contentPane;
+	private static JButton btnBrowse;
+	private static JLabel lblstatusHere;
+	private static JLabel lblTablesInDirectory;
+	private JButton btnGo;
 	private JTextField textField;
-
+	private static JList list;
+	
+	// class variables needed to perform operations
+	private static Vector tableList;
+	private static Connection con = null;
+	private static String fName;
+	private boolean echo;
+	private static DatabaseMetaData dbMeta;
+	private static String dbType,dbVersion;
+	private static String selectedTable; 
+	
 	/**
 	 * Launch the application.
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException,SQLException {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Throwable e) {
 			e.printStackTrace();
 		}
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					GUITopLevel frame = new GUITopLevel();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-		
+
+		try {
+			GUITopLevel frame = new GUITopLevel();
+			frame.setVisible(true);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+				
+		// "real" main code starts here
+						 
+	      try 
+	      {
+	/*
+	 *       Register the JDBC driver for dBase
+	 */
+	         Class.forName("com.sqlmagic.tinysql.dbfFileDriver");
+	      } catch (ClassNotFoundException e) {
+	         System.err.println(
+	              "JDBC Driver could not be registered!!\n");
+	         if ( tinySQLGlobals.DEBUG ) e.printStackTrace();
+	      }
+	      fName = ".";
+	      if ( args.length > 0 ) fName = args[0];
+	/* 
+	 *    Establish a connection to dBase
+	 */
+	      con = dbConnect(fName);
+	      if ( con == null )
+	      {
+	         fName = ".";
+	         con = dbConnect(fName);
+	      }
+	      dbMeta = con.getMetaData();
+	      dbType = dbMeta.getDatabaseProductName();		
+	      dbVersion = dbMeta.getDatabaseProductVersion();
 		
 	}
 
@@ -55,6 +110,7 @@ public class GUITopLevel extends JFrame {
 	 * Create the frame.
 	 */
 	public GUITopLevel() {
+		
 		setTitle("TinySQL_GUI");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 900, 600);
@@ -85,6 +141,24 @@ public class GUITopLevel extends JFrame {
 		
 		JMenuItem mntmAbout = new JMenuItem("About");
 		mnHelp.add(mntmAbout);
+		
+		JMenu mnDebug = new JMenu("Debug");
+		menuBar.add(mnDebug);
+		
+		JCheckBoxMenuItem chckbxmntmSetDebugOnoff = new JCheckBoxMenuItem("Set Debug On/Off");
+		mnDebug.add(chckbxmntmSetDebugOnoff);
+		
+		JCheckBoxMenuItem chckbxmntmSetEchoOnoff = new JCheckBoxMenuItem("Set Echo On/Off");
+		mnDebug.add(chckbxmntmSetEchoOnoff);
+		
+		JCheckBoxMenuItem chckbxmntmSetParserDebug = new JCheckBoxMenuItem("Set Parser Debug On/Off");
+		mnDebug.add(chckbxmntmSetParserDebug);
+		
+		JCheckBoxMenuItem chckbxmntmSetWhereDebug = new JCheckBoxMenuItem("Set Where Debug On/Off");
+		mnDebug.add(chckbxmntmSetWhereDebug);
+		
+		JCheckBoxMenuItem chckbxmntmSetExDebug = new JCheckBoxMenuItem("Set Ex Debug On/Off");
+		mnDebug.add(chckbxmntmSetExDebug);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -114,27 +188,29 @@ public class GUITopLevel extends JFrame {
 					.addContainerGap())
 		);
 		
-		JLabel lblTablesInDirectory = new JLabel("0 Tables in Directory");
+		lblTablesInDirectory = new JLabel(" ");
 		lblTablesInDirectory.setHorizontalAlignment(SwingConstants.LEFT);
-		lblTablesInDirectory.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		lblTablesInDirectory.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		JList list = new JList();
+		list = new JList();
+		list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		
 		GroupLayout gl_panel = new GroupLayout(panel);
 		gl_panel.setHorizontalGroup(
-			gl_panel.createParallelGroup(Alignment.LEADING)
-				.addGroup(Alignment.TRAILING, gl_panel.createSequentialGroup()
+			gl_panel.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_panel.createSequentialGroup()
 					.addContainerGap()
 					.addGroup(gl_panel.createParallelGroup(Alignment.TRAILING)
-						.addComponent(list, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 168, Short.MAX_VALUE)
-						.addComponent(lblTablesInDirectory, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 168, Short.MAX_VALUE))
+						.addComponent(list, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 167, Short.MAX_VALUE)
+						.addComponent(lblTablesInDirectory, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 167, Short.MAX_VALUE))
 					.addContainerGap())
 		);
 		gl_panel.setVerticalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel.createSequentialGroup()
-					.addComponent(lblTablesInDirectory)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(list, GroupLayout.DEFAULT_SIZE, 416, Short.MAX_VALUE))
+					.addComponent(lblTablesInDirectory, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(list, GroupLayout.DEFAULT_SIZE, 418, Short.MAX_VALUE))
 		);
 		panel.setLayout(gl_panel);
 		
@@ -144,15 +220,16 @@ public class GUITopLevel extends JFrame {
 		textField = new JTextField();
 		textField.setColumns(10);
 		
-		JButton btnBrowse = new JButton("Browse");
+		btnBrowse = new JButton("Browse");
 		btnBrowse.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		JLabel lblStatus = new JLabel("Status:");
 		lblStatus.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
-		JLabel lblstatusHere = new JLabel("*general status here*");
+		lblstatusHere = new JLabel("");
 		
-		JButton btnGo = new JButton("Go");
+		btnGo = new JButton("Go");
+
 		btnGo.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		GroupLayout gl_panel_1 = new GroupLayout(panel_1);
 		gl_panel_1.setHorizontalGroup(
@@ -186,5 +263,98 @@ public class GUITopLevel extends JFrame {
 		);
 		panel_1.setLayout(gl_panel_1);
 		contentPane.setLayout(gl_contentPane);
+		
+		createEvents();
 	}
+	
+	private void createEvents()  {
+		
+		// event handler for browse button click
+		btnBrowse.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				int result;
+				File dir;
+				JFileChooser dialog = new JFileChooser();
+				
+				dialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				result = dialog.showDialog(getParent(), "Select Directory");
+				
+				if(result == JFileChooser.APPROVE_OPTION){
+					textField.setText(dialog.getSelectedFile().getAbsolutePath());
+				}
+			}
+		});
+		
+		// event handler for go button click
+		btnGo.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				String tinySQLDir = textField.getText();
+			  
+				try {
+					con = dbConnect(tinySQLDir);
+					dbMeta = con.getMetaData();
+					dbType = dbMeta.getDatabaseProductName();		
+					dbVersion = dbMeta.getDatabaseProductVersion();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
+		
+		// so that we can figure out the selected table in the list
+		list.addListSelectionListener(new ListSelectionListener() {
+			public void valueChanged(ListSelectionEvent e) {
+				int idx = list.getSelectedIndex();
+				if(!e.getValueIsAdjusting() && idx != -1){
+					selectedTable = (String)(list.getSelectedValue());
+				}
+			}
+		});
+	}
+	
+	   private static Connection dbConnect(String tinySQLDir) throws SQLException
+	   {
+	      Connection con=null;
+	      DatabaseMetaData dbMeta;
+	      File conPath;
+	      File[] fileList;
+	      String tableName;
+	      ResultSet tables_rs;
+	      conPath = new File(tinySQLDir);
+	      fileList = conPath.listFiles();
+	      if ( fileList == null )
+	      {
+	    	 lblstatusHere.setText(tinySQLDir + " is not a valid directory.");
+	    	 lblstatusHere.setForeground(Color.RED);
+	         return null;
+	      } else {
+	    	 lblstatusHere.setText("Connecting to " + conPath.getAbsolutePath());
+	    	 lblstatusHere.setForeground(Color.GREEN);
+	         con = DriverManager.getConnection("jdbc:dbfFile:" + conPath, "", "");
+	      }
+	      dbMeta = con.getMetaData();
+	      tables_rs = dbMeta.getTables(null,null,null,null);
+	      tableList = new Vector();
+	      while ( tables_rs.next() )
+	      {
+	         tableName = tables_rs.getString("TABLE_NAME");
+	         tableList.addElement(tableName);
+	      }
+	      if ( tableList.size() == 0 ){
+	    	  lblTablesInDirectory.setText("No tables in this directory.");
+	      	  lblTablesInDirectory.setForeground(Color.RED);
+	      }
+	      else {
+	    	  lblTablesInDirectory.setText(tableList.size() + " tables"
+	         + " in this directory.");
+	    	  lblTablesInDirectory.setForeground(Color.GREEN);
+	    	  
+	    	// call a method that takes the tablelist and puts them in the JList
+	    	list.setListData(tableList);
+	    	list.setSelectedIndex(0);
+	    	  
+	      }
+	      return con;
+	   }
 }
