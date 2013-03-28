@@ -8,6 +8,8 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.UIManager;
 import javax.swing.GroupLayout;
@@ -41,23 +43,42 @@ import javax.swing.event.ListSelectionEvent;
 
 public class GUITopLevel extends JFrame {
 
+	// public variales Amelia and Herman will need
+	public static Connection con = null;
+	public static String selectedTable; 
+	// at the bottom there are public methods to change the status or table list
+	
+	// panel variables
+	GUIStructure struct;
+	GUIExecuteSQL exec_panel;
+	
+	// class variables needed to perform operations
+	private static Vector tableList;
+	private static String fName;
+	private boolean echo = false;
+	private static DatabaseMetaData dbMeta;
+	private static String dbType,dbVersion;
+	
 	// GUI components
 	private JPanel contentPane;
 	private static JButton btnBrowse;
 	private static JLabel lblstatusHere;
 	private static JLabel lblTablesInDirectory;
-	private JButton btnGo;
-	private JTextField textField;
+	private static JButton btnGo;
+	private static JTextField textField;
 	private static JList list;
+	private static JCheckBoxMenuItem chckbxmntmSetDebugOnoff;
+	private static JCheckBoxMenuItem chckbxmntmSetEchoOnoff;
+	private static JCheckBoxMenuItem chckbxmntmSetParserDebug;
+	private static JCheckBoxMenuItem chckbxmntmSetWhereDebug;
+	private static JCheckBoxMenuItem chckbxmntmSetExDebug;
+	private static JMenuItem mntmCreateTable;
+	private JMenuItem mntmExit;
+	private JMenuItem mntmCommands;
+	private JMenuItem mntmLimitations;
+	private JMenuItem mntmNewMenuItem;
+	private JMenuItem mntmAbout;
 	
-	// class variables needed to perform operations
-	private static Vector tableList;
-	private static Connection con = null;
-	private static String fName;
-	private boolean echo;
-	private static DatabaseMetaData dbMeta;
-	private static String dbType,dbVersion;
-	private static String selectedTable; 
 	
 	/**
 	 * Launch the application.
@@ -73,6 +94,7 @@ public class GUITopLevel extends JFrame {
 			GUITopLevel frame = new GUITopLevel();
 			frame.setVisible(true);
 		} catch (Exception e) {
+			if(tinySQLGlobals.DEBUG)
 			e.printStackTrace();
 		}
 				
@@ -121,44 +143,45 @@ public class GUITopLevel extends JFrame {
 		JMenu mnFile = new JMenu("File");
 		menuBar.add(mnFile);
 		
-		JMenuItem mntmCreateTable = new JMenuItem("Create Table");
+		mntmCreateTable = new JMenuItem("Create Table");
 		mnFile.add(mntmCreateTable);
 		
-		JMenuItem mntmExit = new JMenuItem("Exit");
+		mntmExit = new JMenuItem("Exit");
 		mnFile.add(mntmExit);
 		
 		JMenu mnHelp = new JMenu("Help");
 		menuBar.add(mnHelp);
 		
-		JMenuItem mntmCommands = new JMenuItem("Commands");
+		mntmCommands = new JMenuItem("Commands");
 		mnHelp.add(mntmCommands);
 		
-		JMenuItem mntmLimitations = new JMenuItem("Limitations");
+		mntmLimitations = new JMenuItem("Limitations");
 		mnHelp.add(mntmLimitations);
 		
-		JMenuItem mntmNewMenuItem = new JMenuItem("New Features");
+		mntmNewMenuItem = new JMenuItem("New Features");
 		mnHelp.add(mntmNewMenuItem);
 		
-		JMenuItem mntmAbout = new JMenuItem("About");
+		mntmAbout = new JMenuItem("About");
 		mnHelp.add(mntmAbout);
 		
 		JMenu mnDebug = new JMenu("Debug");
 		menuBar.add(mnDebug);
 		
-		JCheckBoxMenuItem chckbxmntmSetDebugOnoff = new JCheckBoxMenuItem("Set Debug On/Off");
+		chckbxmntmSetDebugOnoff = new JCheckBoxMenuItem("Set Debug On/Off");
 		mnDebug.add(chckbxmntmSetDebugOnoff);
 		
-		JCheckBoxMenuItem chckbxmntmSetEchoOnoff = new JCheckBoxMenuItem("Set Echo On/Off");
+		chckbxmntmSetEchoOnoff = new JCheckBoxMenuItem("Set Echo On/Off");
 		mnDebug.add(chckbxmntmSetEchoOnoff);
 		
-		JCheckBoxMenuItem chckbxmntmSetParserDebug = new JCheckBoxMenuItem("Set Parser Debug On/Off");
+		chckbxmntmSetParserDebug = new JCheckBoxMenuItem("Set Parser Debug On/Off");
 		mnDebug.add(chckbxmntmSetParserDebug);
 		
-		JCheckBoxMenuItem chckbxmntmSetWhereDebug = new JCheckBoxMenuItem("Set Where Debug On/Off");
+		chckbxmntmSetWhereDebug = new JCheckBoxMenuItem("Set Where Debug On/Off");
 		mnDebug.add(chckbxmntmSetWhereDebug);
 		
-		JCheckBoxMenuItem chckbxmntmSetExDebug = new JCheckBoxMenuItem("Set Ex Debug On/Off");
+		chckbxmntmSetExDebug = new JCheckBoxMenuItem("Set Ex Debug On/Off");
 		mnDebug.add(chckbxmntmSetExDebug);
+		
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -168,6 +191,19 @@ public class GUITopLevel extends JFrame {
 		JPanel panel_1 = new JPanel();
 		
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		
+		struct = new GUIStructure();
+		JScrollPane jscroll1 = new JScrollPane();
+		jscroll1.setViewportView(struct);
+		
+		tabbedPane.addTab("Table Structure", jscroll1);
+		
+		exec_panel = new GUIExecuteSQL();
+		JScrollPane jscroll2 = new JScrollPane();
+		jscroll2.setViewportView(exec_panel);
+		
+		tabbedPane.addTab("Execute  SQL", jscroll2);
+		
 		GroupLayout gl_contentPane = new GroupLayout(contentPane);
 		gl_contentPane.setHorizontalGroup(
 			gl_contentPane.createParallelGroup(Alignment.LEADING)
@@ -297,6 +333,7 @@ public class GUITopLevel extends JFrame {
 					dbVersion = dbMeta.getDatabaseProductVersion();
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
+					if(tinySQLGlobals.DEBUG)
 					e.printStackTrace();
 				}
 			}
@@ -311,11 +348,112 @@ public class GUITopLevel extends JFrame {
 				}
 			}
 		});
+		
+		// debug check box menu item
+		chckbxmntmSetDebugOnoff.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				if(chckbxmntmSetDebugOnoff.isSelected()){
+					tinySQLGlobals.DEBUG = true;
+				}
+				else
+					tinySQLGlobals.debug = false;
+			}
+		});
+		
+		//  set Echo on/off
+		chckbxmntmSetEchoOnoff.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(chckbxmntmSetEchoOnoff.isSelected())
+					echo = true;
+				else
+					echo = false;
+			}
+		});
+		
+		// set parser debug on/off
+		chckbxmntmSetParserDebug.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(chckbxmntmSetParserDebug.isSelected())
+					tinySQLGlobals.PARSER_DEBUG = true;
+				else
+					tinySQLGlobals.PARSER_DEBUG = false;
+			}
+		});
+		
+		// set where debug on/off
+		chckbxmntmSetWhereDebug.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(chckbxmntmSetWhereDebug.isSelected())
+					tinySQLGlobals.WHERE_DEBUG = true;
+				else
+					tinySQLGlobals.WHERE_DEBUG = false;
+			}
+		});
+		
+		// file buttons
+		
+		// set Ex debug on/off
+		chckbxmntmSetExDebug.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(chckbxmntmSetExDebug.isSelected())
+					tinySQLGlobals.EX_DEBUG = true;
+				else 
+					tinySQLGlobals.EX_DEBUG = false;
+			}
+		});
+		
+		// menu button clicked to open create table form
+		mntmCreateTable.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				// will be some code here to open the create table form
+			}
+		});
+		
+		// exit button in file
+		mntmExit.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				dispose();
+			}
+		});
+		
+		// help menu handlers
+		
+		// equivalent to "help commands" function 
+		mntmCommands.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JOptionPane.showMessageDialog(getParent(),
+					    helpMsg("help commands"),"Normally Available Commands",JOptionPane.INFORMATION_MESSAGE);
+			}
+		});
+		
+		// equivalent to "help limitations" function
+		mntmLimitations.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JOptionPane.showMessageDialog(getParent(),
+					    helpMsg("help limitations"),"Limitations of TinySQL",JOptionPane.INFORMATION_MESSAGE);
+			}
+		});
+		
+		//  equivalent to "Help new" command
+		mntmNewMenuItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JOptionPane.showMessageDialog(getParent(),
+					    helpMsg("help new"),"New features of TinySQL",JOptionPane.INFORMATION_MESSAGE);
+			}
+		});
+		
+		// equivalent to "help about" command
+		mntmAbout.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JOptionPane.showMessageDialog(getParent(),
+					    helpMsg("help about"),"About TinySQL",JOptionPane.INFORMATION_MESSAGE);
+			}
+		});
 	}
 	
 	   private static Connection dbConnect(String tinySQLDir) throws SQLException
 	   {
-	      Connection con=null;
+	      Connection conn=null;
 	      DatabaseMetaData dbMeta;
 	      File conPath;
 	      File[] fileList;
@@ -331,9 +469,9 @@ public class GUITopLevel extends JFrame {
 	      } else {
 	    	 lblstatusHere.setText("Connecting to " + conPath.getAbsolutePath());
 	    	 lblstatusHere.setForeground(Color.GREEN);
-	         con = DriverManager.getConnection("jdbc:dbfFile:" + conPath, "", "");
+	         conn = DriverManager.getConnection("jdbc:dbfFile:" + conPath, "", "");
 	      }
-	      dbMeta = con.getMetaData();
+	      dbMeta = conn.getMetaData();
 	      tables_rs = dbMeta.getTables(null,null,null,null);
 	      tableList = new Vector();
 	      while ( tables_rs.next() )
@@ -355,6 +493,134 @@ public class GUITopLevel extends JFrame {
 	    	list.setSelectedIndex(0);
 	    	  
 	      }
-	      return con;
+	      return conn;
+	   }
+	   
+	   private static String helpMsg(String inputCmd)
+	   {
+	      String upperCmd;
+	      upperCmd = inputCmd.toUpperCase().trim();
+	      if ( upperCmd.equals("HELP") )
+	      {
+	         return("The following help topics are available:\n"
+	         + "=============================================================\n"
+	         + "HELP NEW - list of new features in tinySQL " + dbVersion + "\n"
+	         + "HELP COMMANDS - help for the non-SQL commands\n"
+	         + "HELP LIMITATIONS - limitations of tinySQL " + dbVersion + "\n"
+	         + "HELP ABOUT - short description of tinySQL.\n");
+	      } else if ( upperCmd.equals("HELP COMMANDS") ) {
+	         return("The following non-SQL commands are supported:\n"
+	         + "=============================================================\n"
+	         + "SHOW TABLES - lists the tinySQL tables (DBF files) in the current "
+	         + "directory\n"
+	         + "SHOW TYPES - lists column types supported by tinySQL.\n"
+	         + "DESCRIBE table_name - describes the columns in table table_name.\n"
+	         + "CONNECT directory - connects to a different directory;\n"
+	         + "   Examples:  CONNECT C:\\TEMP in Windows\n"
+	         + "              CONNECT /home/mydir/temp in Linux/Unix\n"
+	         + "SET DEBUG ON/OFF - turns general debugging on or off\n"
+	         + "SET PARSER_DEBUG ON/OFF - turns parser debugging on or off\n"
+	         + "SET WHERE_DEBUG ON/OFF - turns where clause debugging on or off\n"
+	         + "SET EX_DEBUG ON/OFF - turns exception stack printing on or off\n"
+	         + "SET ECHO ON/OFF - will echo input commands\n"
+	         + "EXIT - leave the tinySQL command line interface.\n");
+	      } else if ( upperCmd.equals("HELP LIMITATIONS") ) {
+	         return("tinySQL " + dbVersion 
+	         + " does NOT support the following:\n"
+	         + "=============================================================\n"
+	         + "Subqueries: eg SELECT COL1 from TABLE1 where COL2 in (SELECT ...\n"
+	         + "IN specification within a WHERE clause.\n"
+	         + "GROUP BY clause in SELECT statments.\n"
+	         + "AS in CREATE statements; eg CREATE TABLE TAB2 AS SELECT ...\n"
+	         + "UPDATE statements including JOINS.\n\n"
+	         + "If you run into others let us know by visiting\n"
+	         + "http://sourceforge.net/projects/tinysql\n");
+	      } else if ( upperCmd.equals("HELP NEW") ) {
+	         return("New features in tinySQL releases.\n"
+	         + "=============================================================\n"
+	         + "Version 2.26d released December 29, 2006\n"
+	         + "Corrected problems with date comparisions, added support for \n"
+	         + "the TO_DATE function, corrected problems with DELETE.\n"
+	         + "Added support for IS NULL and IS NOT NULL, added ability\n"
+	         + "to spool output to a file.\n"
+	         + "---------------------------------------------------------------\n"
+	         + "Version 2.10 released October 22, 2006\n"
+	         + "Added support for long column names and fixed bugs in \n"
+	         + "ALTER TABLE commands.\n"
+	         + "---------------------------------------------------------------\n"
+	         + "Version 2.02 released July 20, 2005\n"
+	         + "Fixed more bugs with the COUNT(*) and the like comparison.\n"
+	         + "---------------------------------------------------------------\n"
+	         + "Version 2.01 released April 20, 2005\n"
+	         + "Fixed several bugs with the COUNT(*) and other summary functions\n"
+	         + "Fixed ORDER BY using columns that were not SELECTed.\n"
+	         + "Added support for DISTINCT keyword and TRIM function.\n"
+	         + "Added default sorting by selected column.\n"
+	         + "Significant reorganization of code to allow the use of functions\n"
+	         + "in WHERE clauses (now stores tsColumn objects in tinySQLWhere).\n"
+	         + "---------------------------------------------------------------\n"
+	         + "Version 2.0 released Dec. 20, 2004\n" 
+	         + "The package name was changed to com.sqlmagic.tinysql.\n"
+	         + "Support for table aliases in JOINS: see example below\n"
+	         + "  SELECT A.COL1,B.COL2 FROM TABLE1 A,TABLE2 B WHERE A.COL3=B.COL3\n"
+	         + "COUNT,MAX,MIN,SUM aggregate functions.\n"
+	         + "CONCAT,UPPER,SUBSTR in-line functions for strings.\n"
+	         + "SYSDATE - current date.\n"
+	         + "START script_file.sql - executes SQL commands in file.\n"
+	         + "Support for selection of constants: see example below:\n"
+	         + "  SELECT 'Full Name: ',first_name,last_name from person\n"
+	         + "All comparisions work properly: < > = != LIKE \n");
+	      } else if ( upperCmd.equals("HELP ABOUT") ) {
+	         return(
+	           "=============================================================\n"
+	         + "tinySQL was originally written by Brian Jepson\n"
+	         + "as part of the research he did while writing the book \n"
+	         + "Java Database Programming (John Wiley, 1996).  The database was\n"
+	         + "enhanced by Andreas Kraft, Thomas Morgner, Edson Alves Pereira,\n"
+	         + "and Marcel Ruff between 1997 and 2002.\n"
+	         + "The current version " + dbVersion
+	         + " was developed by Davis Swan starting in 2004.\n\n"
+	         + "tinySQL is free software; you can redistribute it and/or\n"
+	         + "modify it under the terms of the GNU Lesser General Public\n"
+	         + "License as published by the Free Software Foundation; either\n"
+	         + "version 2.1 of the License, or (at your option) any later version.\n"
+	         + "This library is distributed in the hope that it will be useful,\n"
+	         + "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+	         + "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n"
+	         + "Lesser General Public License for more details at\n"
+	         + "http://www.gnu.org/licenses/lgpl.html");
+	      } else {
+	         return("Unknown help command.\n");
+	      }
+	   }
+	   
+	   public static void UpdateStatusLabel(String message){
+		   lblstatusHere.setText(message);
+		   lblstatusHere.setForeground(Color.black);
+	   }
+	   
+	   public static void UpdateStatusLabel(String message, Color color){
+		   lblstatusHere.setText(message);
+		   lblstatusHere.setForeground(color);
+	   }
+	   
+	   public static void setTableList(Object[] l){
+		   list.setListData(l);
+		   list.setSelectedIndex(0);
+	   }
+	   
+	   public static void setTableList(Object[] l, int index){
+		   list.setListData(l);
+		   list.setSelectedIndex(index);
+	   }
+	   
+	   public static void setTableList(Vector l){
+		   list.setListData(l);
+		   list.setSelectedIndex(0);
+	   }
+	   
+	   public static void setTableList(Vector[] l, int index){
+		   list.setListData(l);
+		   list.setSelectedIndex(index);
 	   }
 }
