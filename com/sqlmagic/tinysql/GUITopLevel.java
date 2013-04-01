@@ -117,10 +117,12 @@ public class GUITopLevel extends JFrame {
 	 *    Establish a connection to dBase
 	 */
 	      con = dbConnect(fName);
+	      GUIStructure.setConnect(con);
 	      if ( con == null )
 	      {
 	         fName = ".";
 	         con = dbConnect(fName);
+	         GUIStructure.setConnect(con);
 	      }
 	      dbMeta = con.getMetaData();
 	      dbType = dbMeta.getDatabaseProductName();		
@@ -328,6 +330,7 @@ public class GUITopLevel extends JFrame {
 			  
 				try {
 					con = dbConnect(tinySQLDir);
+					GUIStructure.setConnect(con);
 					dbMeta = con.getMetaData();
 					dbType = dbMeta.getDatabaseProductName();		
 					dbVersion = dbMeta.getDatabaseProductVersion();
@@ -345,6 +348,7 @@ public class GUITopLevel extends JFrame {
 				int idx = list.getSelectedIndex();
 				if(!e.getValueIsAdjusting() && idx != -1){
 					selectedTable = (String)(list.getSelectedValue());
+					GUIStructure.setTName(selectedTable);
 				}
 			}
 		});
