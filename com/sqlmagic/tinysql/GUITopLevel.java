@@ -37,9 +37,13 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Timer;
 import java.util.Vector;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.ListSelectionEvent;
+import javax.swing.JCheckBox;
+import java.awt.event.ItemListener;
+import java.awt.event.ItemEvent;
 
 public class GUITopLevel extends JFrame {
 
@@ -47,6 +51,9 @@ public class GUITopLevel extends JFrame {
 	public static Connection con = null;
 	public static String selectedTable; 
 	// at the bottom there are public methods to change the status or table list
+	
+	// public cache boolean
+	private static boolean cache = false;
 	
 	// panel variables
 	GUIStructure struct;
@@ -58,7 +65,7 @@ public class GUITopLevel extends JFrame {
 	private boolean echo = false;
 	private static DatabaseMetaData dbMeta;
 	private static String dbType,dbVersion;
-	
+		
 	// GUI components
 	private JPanel contentPane;
 	private static JButton btnBrowse;
@@ -73,11 +80,13 @@ public class GUITopLevel extends JFrame {
 	private static JCheckBoxMenuItem chckbxmntmSetWhereDebug;
 	private static JCheckBoxMenuItem chckbxmntmSetExDebug;
 	private static JMenuItem mntmCreateTable;
-	private JMenuItem mntmExit;
-	private JMenuItem mntmCommands;
-	private JMenuItem mntmLimitations;
-	private JMenuItem mntmNewMenuItem;
-	private JMenuItem mntmAbout;
+	private static JMenuItem mntmExit;
+	private static JMenuItem mntmCommands;
+	private static JMenuItem mntmLimitations;
+	private static JMenuItem mntmNewMenuItem;
+	private static JMenuItem mntmAbout;
+	private static JCheckBox chckbxEnableCaching;
+	private static JLabel lblTimer;
 	
 	
 	/**
@@ -137,7 +146,7 @@ public class GUITopLevel extends JFrame {
 		
 		setTitle("TinySQL_GUI");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 900, 600);
+		setBounds(100, 100, 900, 667);
 		
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -269,22 +278,44 @@ public class GUITopLevel extends JFrame {
 		btnGo = new JButton("Go");
 
 		btnGo.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		
+		chckbxEnableCaching = new JCheckBox("Enable Caching?");
+		chckbxEnableCaching.setFont(new Font("Tahoma", Font.PLAIN, 15));
+		
+		JLabel lblTimeElapsed = new JLabel("Time Elapsed:");
+		lblTimeElapsed.setFont(new Font("Tahoma", Font.PLAIN, 15));
+		
+		lblTimer = new JLabel("0");
+		lblTimer.setFont(new Font("Tahoma", Font.PLAIN, 15));
 		GroupLayout gl_panel_1 = new GroupLayout(panel_1);
 		gl_panel_1.setHorizontalGroup(
 			gl_panel_1.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel_1.createSequentialGroup()
-					.addContainerGap()
-					.addComponent(lblDirectory)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(textField, GroupLayout.PREFERRED_SIZE, 250, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(btnBrowse)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(btnGo)
-					.addPreferredGap(ComponentPlacement.RELATED, 71, Short.MAX_VALUE)
-					.addComponent(lblStatus)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(lblstatusHere, GroupLayout.PREFERRED_SIZE, 272, GroupLayout.PREFERRED_SIZE))
+					.addGroup(gl_panel_1.createParallelGroup(Alignment.TRAILING, false)
+						.addGroup(Alignment.LEADING, gl_panel_1.createSequentialGroup()
+							.addGap(202)
+							.addComponent(chckbxEnableCaching)
+							.addPreferredGap(ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+							.addComponent(lblTimeElapsed))
+						.addGroup(Alignment.LEADING, gl_panel_1.createSequentialGroup()
+							.addContainerGap()
+							.addComponent(lblDirectory)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(textField, GroupLayout.PREFERRED_SIZE, 250, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(btnBrowse)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(btnGo)))
+					.addGroup(gl_panel_1.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panel_1.createSequentialGroup()
+							.addPreferredGap(ComponentPlacement.RELATED, 41, Short.MAX_VALUE)
+							.addComponent(lblStatus)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(lblstatusHere, GroupLayout.PREFERRED_SIZE, 272, GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_panel_1.createSequentialGroup()
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(lblTimer)
+							.addContainerGap())))
 		);
 		gl_panel_1.setVerticalGroup(
 			gl_panel_1.createParallelGroup(Alignment.LEADING)
@@ -297,7 +328,12 @@ public class GUITopLevel extends JFrame {
 						.addComponent(lblStatus)
 						.addComponent(btnBrowse)
 						.addComponent(btnGo))
-					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+					.addPreferredGap(ComponentPlacement.RELATED, 35, Short.MAX_VALUE)
+					.addGroup(gl_panel_1.createParallelGroup(Alignment.BASELINE)
+						.addComponent(chckbxEnableCaching)
+						.addComponent(lblTimeElapsed)
+						.addComponent(lblTimer))
+					.addContainerGap())
 		);
 		panel_1.setLayout(gl_panel_1);
 		contentPane.setLayout(gl_contentPane);
@@ -451,6 +487,17 @@ public class GUITopLevel extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				JOptionPane.showMessageDialog(getParent(),
 					    helpMsg("help about"),"About TinySQL",JOptionPane.INFORMATION_MESSAGE);
+			}
+		});
+		
+		// event handler for cache checkbox
+		chckbxEnableCaching.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				if(chckbxEnableCaching.isSelected()){
+					cache = true;
+				}
+				else
+					cache = false;
 			}
 		});
 	}
@@ -626,5 +673,13 @@ public class GUITopLevel extends JFrame {
 	   public static void setTableList(Vector[] l, int index){
 		   list.setListData(l);
 		   list.setSelectedIndex(index);
+	   }
+	   
+	   public static void setTimerLabel(String time){
+		   lblTimer.setText(time);
+	   }
+	   
+	   public static boolean getCacheOption(){
+		   return cache;
 	   }
 }
