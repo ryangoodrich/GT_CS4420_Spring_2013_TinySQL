@@ -1,149 +1,244 @@
 package com.sqlmagic.tinysql;
 
-import java.awt.Color;
-import java.awt.Font;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
+import java.util.ListIterator;
 import java.util.Vector;
 import javax.swing.JLabel;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.GroupLayout;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.JTextArea;
+import javax.swing.table.DefaultTableModel;
 
 public class GUIStructure extends JPanel {
 
-	
-	private static JLabel lblTableHere;
-	private static String tName;
+	//GUI components
+	private static JLabel lblTableHere, colLabel;
 	private static JTextArea textArea;
-	private static Connection connect;
-	static Vector tableList;
-	static FileWriter spoolFileWriter = null;
-	static String newLine = System.getProperty("line.separator"); 
-	//private static DatabaseMetaData dbMeta;
-	//static GUITopLevel tl = new GUITopLevel();
-	private JMenuItem mntmLimitations;
+	private static JTable Ctable;
+	private static JPanel topPanel;
+	private	static JScrollPane scrollPane, scrollPane2;
 	
+	//class variables
+	private static String tName;
+	private static Connection connect;
+	private static int colCounter= 1;
+	private static Vector<String> datavals;
+	private static String [][] dataValues;
+  private static String columnNames[] = { "Column ID", "Name", "Type", "" };
+	
+	
+	public static void main(String[] args) throws IOException,SQLException {
+		
+		try {
+			GUIStructure panel = new GUIStructure();
+			panel.setVisible(true);
+		} catch (Exception e) {
+			if(tinySQLGlobals.DEBUG)
+			e.printStackTrace();
+		}
+		
+	}
+
+	//method to get table name from top level
 	public static void setTName(String selectedT){
 		tName = selectedT;
+		try {
+			UpdateStructure();
+		}
+		catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
+	// method to get connect from top level
 	public static void setConnect(Connection conn){
 		connect = conn;
 	}
-	
-	
 	
 	/**
 	 * Create the panel.
 	 */
 	public GUIStructure() {
 		
-		JLabel lblCreateStatement = new JLabel("Create Statement");
-		
+		//Display Table Name
 		JLabel lblTable = new JLabel("TABLE:");
-		
 		lblTableHere = new JLabel("");
 		
+		//Text area from Create Statement
+		JLabel lblCreateStatement = new JLabel("Create Statement");
+		textArea = new JTextArea(10,10);
+		textArea.setEditable(false);
+		textArea.setLineWrap(true);
+	// Add the table to a scrolling pane
+		scrollPane2 = new JScrollPane(textArea);
+		
+		//Set up table that displays Column Information
+		
 		JLabel lblColumns = new JLabel("Columns");
+		colLabel = new JLabel("");
 		
-		JLabel label = new JLabel("( )");
+		String dataValues[][] ={};
+		topPanel = new JPanel();
+		Ctable = new JTable( dataValues, columnNames );
+		Ctable.setEnabled(false);
+		// Add the table to a scrolling pane
+		scrollPane = new JScrollPane( Ctable );
+		topPanel.add(scrollPane);
 		
-		textArea = new JTextArea();
+	
 		GroupLayout groupLayout = new GroupLayout(this);
 		groupLayout.setHorizontalGroup(
 			groupLayout.createParallelGroup(Alignment.LEADING)
 				.addGroup(groupLayout.createSequentialGroup()
 					.addGap(21)
 					.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
-						.addComponent(textArea, GroupLayout.PREFERRED_SIZE, 386, GroupLayout.PREFERRED_SIZE)
-						.addGroup(groupLayout.createSequentialGroup()
-							.addComponent(lblColumns)
-							.addPreferredGap(ComponentPlacement.RELATED)
-							.addComponent(label))
+						.addComponent(topPanel, GroupLayout.PREFERRED_SIZE, 500, GroupLayout.PREFERRED_SIZE)
 						.addGroup(groupLayout.createSequentialGroup()
 							.addComponent(lblTable)
 							.addGap(12)
 							.addComponent(lblTableHere))
-						.addComponent(lblCreateStatement))
-					.addGap(43))
+						.addComponent(lblCreateStatement)
+						.addComponent(scrollPane2, GroupLayout.PREFERRED_SIZE, 600, GroupLayout.PREFERRED_SIZE)
+						.addGroup(groupLayout.createSequentialGroup()
+							.addComponent(lblColumns)
+							.addGap(6)
+							.addComponent(colLabel)))
+					.addGap(16))
 		);
 		groupLayout.setVerticalGroup(
-			groupLayout.createParallelGroup(Alignment.LEADING)
-				.addGroup(groupLayout.createSequentialGroup()
-					.addGap(18)
-					.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
-						.addComponent(lblTable)
-						.addComponent(lblTableHere))
-					.addGap(44)
-					.addComponent(lblCreateStatement)
-					.addGap(94)
-					.addGroup(groupLayout.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblColumns)
-						.addComponent(label))
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(textArea, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(17, Short.MAX_VALUE))
-		);
-		setLayout(groupLayout);
-		//textArea.setText("something");
+				groupLayout.createParallelGroup(Alignment.LEADING)
+					.addGroup(groupLayout.createSequentialGroup()
+						.addGap(18)
+						.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
+							.addComponent(lblTable)
+							.addComponent(lblTableHere))
+						.addGap(44)
+						.addComponent(lblCreateStatement)
+						.addGap(6)
+						.addComponent(scrollPane2, GroupLayout.PREFERRED_SIZE, 100, GroupLayout.PREFERRED_SIZE)
+						.addGap(10)
+						.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
+							.addComponent(lblColumns)
+							.addComponent(colLabel))
+						.addPreferredGap(ComponentPlacement.UNRELATED)
+						.addComponent(topPanel, GroupLayout.PREFERRED_SIZE, 160, GroupLayout.PREFERRED_SIZE)
+						.addContainerGap(19, Short.MAX_VALUE))
+			);
+			setLayout(groupLayout);		
+	}
+
+	//Update information based on selected Table
+	private static void UpdateStructure() throws IOException,SQLException{
+		
+		lblTableHere.setText(tName);
+		
+		DatabaseMetaData dbMeta;
+		int colWidth,colScale,colPrecision,colType;
+    String tableName=null,colTypeName;
+		ResultSet display_rs;
+		StringBuffer lineOut, CreateState;
+		colCounter = 0;
 		
 		
+    dbMeta = connect.getMetaData();
+    tableName = tName;
+    display_rs = dbMeta.getColumns(null,null,tableName,null);
+
+    datavals = new Vector<String>();
+    while (display_rs.next())
+    {
+       lineOut = new StringBuffer(100);
+       lineOut.append(padString(display_rs.getString(4),32));
+       colTypeName = display_rs.getString(6);
+       colType = display_rs.getInt(5);
+       colWidth = display_rs.getInt(7);
+       colScale = display_rs.getInt(9);
+       colPrecision = display_rs.getInt(10);
+       if ( colTypeName.equals("CHAR") )
+       {
+          colTypeName = colTypeName + "(" 
+          + Integer.toString(colWidth) + ")";
+       } else if ( colTypeName.equals("FLOAT") ) {
+          colTypeName += "("+ Integer.toString(colPrecision)
+          + "," + Integer.toString(colScale) + ")";
+       }  
+       datavals.add(Integer.toString(colCounter));
+       datavals.add(padString(display_rs.getString(4),32));
+       datavals.add(colTypeName);
+       datavals.add(Integer.toString(colType));
+       lineOut.append(padString(colTypeName,20) + padString(colType,12));
+
+       colCounter++;
+       
+    }
+    //Parse vector holding information into correct format for JTable
+    colLabel.setText("(" + String.valueOf(colCounter) + ")");
+    int row = 0;
+    int col = 0;
+  	String [][] dataValues= new String [colCounter][4]; 
+    ListIterator iter = datavals.listIterator();
+    CreateState = new StringBuffer(100);
+    while (iter.hasNext()) {
+        dataValues[row][col] = (String)iter.next();
+        if (col==1){
+        	CreateState.append("\"" + (dataValues[row][col]).replaceAll("\\s","") + "\" ");
+        }
+        if (col==2){
+        	CreateState.append(dataValues[row][col]);
+        	 if (row ==0){
+            	CreateState.append(" PRIMARY KEY " + "NOT NULL, ");
+            }
+        	 if (row == (colCounter-1))
+        		 CreateState.append(" NOT NULL)");
+        	 else
+        		 CreateState.append(" NOT NULL, ");
+        }
+        col++;
+        if (col == 4){
+        	col = 0;
+        	row++;
+        }
+    }
+    //Display new column information
+    Ctable.setModel(new DefaultTableModel(dataValues, columnNames));
+    //Display new Create Statement information
+    textArea.setText("CREATE TABLE \""+ tableName + "\" (" + CreateState);
 	}
 	
-	private static Connection dbConnect(String tinySQLDir) throws SQLException
-  {
-     Connection con=null;
-     DatabaseMetaData dbMeta;
-     File conPath;
-     File[] fileList;
-     String tableName;
-     ResultSet tables_rs;
-     conPath = new File(tinySQLDir);
-     fileList = conPath.listFiles();
-     if ( fileList == null )
-     {
-        System.out.println(tinySQLDir + " is not a valid directory.");
-        return null;
-     } else {
-        System.out.println("Connecting to " + conPath.getAbsolutePath());
-        con = DriverManager.getConnection("jdbc:dbfFile:" + conPath, "", "");
-     }
-     dbMeta = con.getMetaData();
-     tables_rs = dbMeta.getTables(null,null,null,null);
-     tableList = new Vector();
-     while ( tables_rs.next() )
-     {
-        tableName = tables_rs.getString("TABLE_NAME");
-        tableList.addElement(tableName);
-     }
-     if ( tableList.size() == 0 )
-        System.out.println("There are no tinySQL tables in this directory.");
-     else
-        System.out.println("There are " + tableList.size() + " tinySQL tables"
-        + " in this directory.");
-     return con;
-  }
 
-	
- 
-	
+private static String padString(int inputint, int padLength)
+{
+   return padString(Integer.toString(inputint),padLength);
+}
+private static String padString(String inputString, int padLength)
+{
+   String outputString;
+   String blanks = "                                        ";
+   if ( inputString == null )
+      outputString = blanks + blanks + blanks;
+   else
+      outputString = inputString;
+   if ( outputString.length() > padLength )
+      return outputString.substring(0,padLength);
+   else
+      outputString = outputString + blanks + blanks + blanks;
+      return outputString.substring(0,padLength);
+}
 	
 }
 	
