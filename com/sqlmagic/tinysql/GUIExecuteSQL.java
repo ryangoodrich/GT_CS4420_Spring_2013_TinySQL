@@ -55,6 +55,7 @@ public class GUIExecuteSQL extends JPanel {
 		inputArea.setBounds(15, 35, 630, 50);
 		this.add(inputArea);
 	    outputArea = new JTextArea();
+	    outputArea.setEditable(false);
 	    scrollPane = new JScrollPane(outputArea);
 		scrollPane.setBounds(15, 150, 630, 250);
 		this.add(scrollPane);
@@ -77,9 +78,17 @@ public class GUIExecuteSQL extends JPanel {
 		
 		selectButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				display();
+				displaySelect();
 			}
 		});
+		
+		
+		insertButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				displayInsert();
+			}
+		});
+		
 		
 		executeButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
@@ -104,8 +113,13 @@ public class GUIExecuteSQL extends JPanel {
 	
 
 
-	private void display(){
+	private void displaySelect(){
 		inputArea.setText("select * from tableName");
+	}
+	
+	
+	private void displayInsert(){
+		inputArea.setText("insert into table name (column names) values ( )");
 	}
 	
 	
@@ -113,8 +127,8 @@ public class GUIExecuteSQL extends JPanel {
 
 		stmt = GUITopLevel.con.createStatement();
 		
-		 //if ( inputQuery.toUpperCase().startsWith("SELECT") ) 
-         //{
+		 if ( inputQuery.toUpperCase().startsWith("SELECT") ) 
+         {
             display_rs = stmt.executeQuery(inputQuery);
             if ( display_rs == null )
             {
@@ -147,7 +161,14 @@ public class GUIExecuteSQL extends JPanel {
               
              
             displayResults(display_rs);
-        // }
+         }
+		 else if (inputQuery.toUpperCase().startsWith("INSERT")){
+			 stmt.executeUpdate(inputQuery);
+			 outputArea.setText("DONE\n"); 
+			 
+		 }
+		 
+		 
 		
 	 }
 	
