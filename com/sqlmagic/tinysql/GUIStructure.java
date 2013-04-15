@@ -107,7 +107,7 @@ public class GUIStructure extends JPanel {
 				.addGroup(groupLayout.createSequentialGroup()
 					.addGap(21)
 					.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
-						.addComponent(topPanel, GroupLayout.PREFERRED_SIZE, 500, GroupLayout.PREFERRED_SIZE)
+						.addComponent(topPanel, GroupLayout.PREFERRED_SIZE, 600, GroupLayout.PREFERRED_SIZE)
 						.addGroup(groupLayout.createSequentialGroup()
 							.addComponent(lblTable)
 							.addGap(12)
@@ -200,13 +200,10 @@ public class GUIStructure extends JPanel {
         }
         if (col==2){
         	CreateState.append(dataValues[row][col]);
-        	 if (row ==0){
-            	CreateState.append(" PRIMARY KEY " + "NOT NULL, ");
-            }
         	 if (row == (colCounter-1))
-        		 CreateState.append(" NOT NULL)");
+        		 CreateState.append(")");
         	 else
-        		 CreateState.append(" NOT NULL, ");
+        		 CreateState.append(", ");
         }
         col++;
         if (col == 4){

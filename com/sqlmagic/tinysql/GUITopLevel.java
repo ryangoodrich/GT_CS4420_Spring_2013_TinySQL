@@ -446,6 +446,11 @@ public class GUITopLevel extends JFrame {
 		mntmCreateTable.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				// will be some code here to open the create table form
+				JFrame cframe = new GUICreateTable();
+			  cframe.setLocationRelativeTo(null);
+			  cframe.setBounds(90, 90, 600, 400);
+				cframe.setVisible(true);
+				
 			}
 		});
 		
