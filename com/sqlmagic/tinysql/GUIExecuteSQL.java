@@ -3,11 +3,14 @@ package com.sqlmagic.tinysql;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.FileWriter;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -129,7 +132,15 @@ public class GUIExecuteSQL extends JPanel {
 		
 		 if ( inputQuery.toUpperCase().startsWith("SELECT") ) 
          {
+			// start the timer
+			Long time = System.nanoTime();
+			if (GUITopLevel.cache)
+				inputQuery = checkForCache(inputQuery);
             display_rs = stmt.executeQuery(inputQuery);
+            String totalTime = ((System.nanoTime() - time) /  1000000) + " ms";
+            System.out.println("Query Time: " + totalTime);
+            GUITopLevel.lblTimer.setText(totalTime);
+            
             if ( display_rs == null )
             {
                System.out.println("Null ResultSet returned from query");
@@ -148,6 +159,8 @@ public class GUIExecuteSQL extends JPanel {
             for ( i = 0; i < rsColCount; i++ )
             {
                columnNames[i] = meta.getColumnName(i + 1);
+               if (columnNames[i].indexOf("-") > 0)
+            	   columnNames[i] = columnNames[i].substring(columnNames[i].indexOf("-") + 1);
                columnWidths[i] = meta.getColumnDisplaySize(i + 1);
                columnTypes[i] = meta.getColumnType(i + 1);
                columnScales[i] = meta.getScale(i + 1);
@@ -265,5 +278,132 @@ public class GUIExecuteSQL extends JPanel {
 	      return numCols;
 	   }
 	   
-
+	   
+	   private String checkForCache(String originalSql) throws SQLException {
+		   // get the cache table name
+		   String[] result = getCacheTableName(originalSql);
+		   String cacheTableName = result[0];
+		   String newSql = result[1];
+		   
+		   // check if the cache has been created by taking the where clause and the from tables
+		   ResultSet tables = GUITopLevel.con.getMetaData().getTables(null,null,null,null);
+		   while (tables.next()) {
+			   if (tables.getString("TABLE_NAME").equals(cacheTableName)) {
+				   System.out.println(newSql);
+				   return newSql;
+			   }
+		   }
+		   
+		   // no table exists so we need to create one...
+		   // lets take out the select stuff... 
+		   String tmpSql = "SELECT * " + originalSql.substring(originalSql.indexOf("FROM")).trim();
+		   
+		   // first we need to run the sql, so lets do that
+		   ResultSet allValues = GUITopLevel.con.createStatement().executeQuery(tmpSql);
+		   
+		   // create a create table string
+		   String createTable = "CREATE TABLE " + cacheTableName + " (";
+		   
+		   // and the insert table name
+		   String insert = "INSERT INTO " + cacheTableName + " (";
+		   
+		   // now we need to construct a table with the data and column layout of the result
+		   ResultSetMetaData allValuesMeta = allValues.getMetaData();
+		   int dataSize = allValuesMeta.getColumnCount();
+		   for (int i = 1; i <= dataSize; i ++) {
+			   // get the name of the column
+			   String tableName = allValuesMeta.getTableName(i);
+			   String columnName = tableName.substring(tableName.indexOf("->") + 2)  + "-" + allValuesMeta.getColumnName(i);
+			   
+			   // add the column name to the string
+			   insert += columnName;
+			   
+			   // get the type and len of the column
+			   String columnType = allValuesMeta.getColumnTypeName(i) + "(" + allValuesMeta.getPrecision(i);
+			   // if its a float we need the precision
+			   if (allValuesMeta.getColumnTypeName(i).equals("FLOAT"))
+				   columnType += allValuesMeta.getScale(i);
+			   columnType += ")";
+			   
+			   // and then put it together and add it to the base string
+			   createTable += "\"" + columnName + "\" " + columnType;
+			   
+			   // add a comma if needed
+			   if (i < dataSize) {
+				   createTable += ", ";
+				   insert += ", ";
+			   }
+		   }
+		   
+		   // finish off the ) and run it
+		   createTable += ")";
+		   GUITopLevel.con.createStatement().executeQuery(createTable);
+		   
+		   // then go through all the results and insert it into the table
+		   insert += ") VALUES ('";
+		   while (allValues.next()) {
+			   for (int i = 1; i <= dataSize; i ++) {
+				   insert += allValues.getString(i);
+				   if (i < dataSize)
+					   insert += "','";
+			   }
+			   insert += "'), (";
+		   }
+		   
+		   insert = insert.substring(0, insert.length() - 3);
+		   GUITopLevel.con.createStatement().executeQuery(insert);
+		   
+		   return newSql;
+	   }
+	   
+	   private String[] getCacheTableName(String sql) {;
+		   // make the whole statment uppercase
+		   sql.toUpperCase();
+		   
+		   // get useful index
+		   int len = sql.length();
+		   int from = sql.indexOf("FROM");
+		   int where = sql.indexOf("WHERE");
+		   
+		   // the new select is from the SELECT statment to the FROM statement
+		   String newSQL = sql.substring(0, from).trim();
+		   
+		   // create a string for the table name
+		   String cacheTableName = "_"; 
+		   
+		   // get the tables that we are looking at
+		   String tables = sql.substring(from + 4, where > 0 ? where : len);
+		   for (String table : tables.split(",")) {
+			   // trim the table
+			   table = table.trim();
+			   
+			   // check if we have an alisis
+			   int space = table.indexOf(" ");
+			   if (space > 0) {
+				   String key = table.substring(space);
+				   table = table.substring(0, space);
+				   // replace all the aliasis in the string
+				   sql = sql.replaceAll(key + "\\.", " " + table + ".");
+				   System.out.println(sql);
+				   newSQL = newSQL.replaceAll(key + "\\.", " " + table + "-");
+				   System.out.println(newSQL);
+			   }
+			   
+			   // and save the talbe to the string
+			   cacheTableName += table;
+		   }
+		   
+		   // compress the rest of the string and append it also
+		   where = sql.indexOf("WHERE");
+		   if (where > 0)
+			   cacheTableName += sql.substring(where + 5).replaceAll(" ", "");
+		   
+		   newSQL += " FROM " + cacheTableName;
+		   
+		   // return the name
+		   String[] result = new String[2];
+		   result[0] = cacheTableName;
+		   result[1] = newSQL;
+		   return result;
+	   }
 }

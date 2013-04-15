@@ -53,7 +53,7 @@ public class GUITopLevel extends JFrame {
 	// at the bottom there are public methods to change the status or table list
 	
 	// public cache boolean
-	private static boolean cache = false;
+	public static boolean cache = false;
 	
 	// panel variables
 	GUIStructure struct;
@@ -86,7 +86,7 @@ public class GUITopLevel extends JFrame {
 	private static JMenuItem mntmNewMenuItem;
 	private static JMenuItem mntmAbout;
 	private static JCheckBox chckbxEnableCaching;
-	private static JLabel lblTimer;
+	public static JLabel lblTimer;
 	
 	
 	/**
@@ -528,7 +528,8 @@ public class GUITopLevel extends JFrame {
 	      while ( tables_rs.next() )
 	      {
 	         tableName = tables_rs.getString("TABLE_NAME");
-	         tableList.addElement(tableName);
+	         if (tableName.charAt(0) != '_')
+	        	 tableList.addElement(tableName);
 	      }
 	      if ( tableList.size() == 0 ){
 	    	  lblTablesInDirectory.setText("No tables in this directory.");
