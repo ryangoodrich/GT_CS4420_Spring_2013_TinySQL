@@ -20,7 +20,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 import javax.swing.JTextArea;
+import javax.swing.table.TableColumn;
 
 public class GUIExecuteSQL extends JPanel {
 
@@ -30,6 +32,8 @@ public class GUIExecuteSQL extends JPanel {
 	JButton selectButton, executeButton, insertButton, updateButton, createButton, deleteButton;
 	JLabel inputLabel, outputLabel;
 	JScrollPane scrollPane;
+	JScrollPane scrollPane2;
+	JTable resultTable;
 	ResultSet display_rs;
 	Statement stmt;
 	ResultSetMetaData meta;
@@ -37,6 +41,7 @@ public class GUIExecuteSQL extends JPanel {
 	int rsColCount, i;
 	FileWriter spoolFileWriter = null;
 	String newLine = System.getProperty("line.separator"); 
+	boolean isTableSelected = GUITopLevel.selectedTable == null ? false : true;
 	
 	
 	public GUIExecuteSQL() {
@@ -60,7 +65,12 @@ public class GUIExecuteSQL extends JPanel {
 	    outputArea = new JTextArea();
 	    outputArea.setEditable(false);
 	    scrollPane = new JScrollPane(outputArea);
-		scrollPane.setBounds(15, 150, 630, 250);
+		scrollPane.setBounds(15, 150, 630, 240);
+		//table Pane
+		resultTable = new JTable();
+		scrollPane2 = new JScrollPane(resultTable);
+		scrollPane2.setBounds(15, 400, 630, 30);
+		this.add(scrollPane2);
 		this.add(scrollPane);
 		
 		//Buttons
@@ -86,6 +96,13 @@ public class GUIExecuteSQL extends JPanel {
 		});
 		
 		
+		updateButton.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent arg0){
+				displayUpdate();
+				
+			}
+		});
+		
 		insertButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				displayInsert();
@@ -108,7 +125,7 @@ public class GUIExecuteSQL extends JPanel {
 					
 					JOptionPane.showMessageDialog(null, "You SQL has some issue");
 					e.printStackTrace();
-					
+					 
 				}
 			}
 		});
@@ -117,12 +134,20 @@ public class GUIExecuteSQL extends JPanel {
 
 
 	private void displaySelect(){
-		inputArea.setText("select * from tableName");
+		String output = isTableSelected ? "select * from tableName": ("select * from "+GUITopLevel.selectedTable);
+		inputArea.setText(output);
+	}
+	
+	private void displayUpdate(){
+		String output = isTableSelected ? "update (tableName) set        =        where condition" : "update " + GUITopLevel.selectedTable +  " set cell = new cell where conditions";
+		inputArea.setText(output);
+		
 	}
 	
 	
 	private void displayInsert(){
-		inputArea.setText("insert into table name (column names) values ( )");
+		String output = isTableSelected ? "insert into table name (column names) values ( )": "insert into "+(GUITopLevel.selectedTable)+ " (column names) values ( )";
+		inputArea.setText(output);
 	}
 	
 	
@@ -146,7 +171,7 @@ public class GUIExecuteSQL extends JPanel {
                System.out.println("Null ResultSet returned from query");
             }
             meta = display_rs.getMetaData();
-
+            //setResultTable(meta);
             //The actual number of columns retrieved has to be checked
 
             rsColCount = meta.getColumnCount();
@@ -171,16 +196,14 @@ public class GUIExecuteSQL extends JPanel {
                outputArea.setText(lineOut.toString());
             }
             //if ( tinySQLGlobals.DEBUG )
-              
+            
              
-            displayResults(display_rs);
+           displayResults(display_rs);
          }
-		 else if (inputQuery.toUpperCase().startsWith("INSERT")){
+		 else if (inputQuery.toUpperCase().startsWith("INSERT")| inputQuery.toUpperCase().startsWith("UPDATE")){
 			 stmt.executeUpdate(inputQuery);
-			 outputArea.setText("DONE\n"); 
-			 
+			 outputArea.setText("DONE\n"); 	 
 		 }
-		 
 		 
 		
 	 }
@@ -243,8 +266,6 @@ public class GUIExecuteSQL extends JPanel {
 	               }
 	               nameLength = meta.getColumnName(ii+1).length();
 	               if ( nameLength > width[ii] ) width[ii] = nameLength;
-	               head.append(padString(meta.getColumnName(ii+1), width[ii]));
-	               head.append(" ");
 	               line.append(padString(dashes+dashes,width[ii]));
 	               line.append(" ");
 	            }
@@ -278,6 +299,31 @@ public class GUIExecuteSQL extends JPanel {
 	      return numCols;
 	   }
 	   
+	   
+	   //test method================================================================================================
+	  public void setResultTable(ResultSetMetaData tableMeta ) throws SQLException{
+		  int trsColCount = meta.getColumnCount();
+          StringBuffer tlineOut = new StringBuffer(100);
+          int[] columnWidths = new int[trsColCount];
+          int[] columnScales = new int[trsColCount];
+          int[] columnPrecisions = new int[trsColCount];
+          int[] columnTypes = new int[trsColCount];
+          String[] columnNames = new String[trsColCount];
+          for ( i = 0; i < rsColCount; i++ )
+          {
+             columnNames[i] = meta.getColumnName(i + 1);
+             if (columnNames[i].indexOf("-") > 0)
+          	   columnNames[i] = columnNames[i].substring(columnNames[i].indexOf("-") + 1);
+             columnWidths[i] = meta.getColumnDisplaySize(i + 1);
+             columnTypes[i] = meta.getColumnType(i + 1);
+             columnScales[i] = meta.getScale(i + 1);
+             columnPrecisions[i] = meta.getPrecision(i + 1);
+             if ( columnNames[i].length() > columnWidths[i] )
+                columnWidths[i] = columnNames[i].length(); 
+             String [][] test = null;
+             resultTable = new JTable(test, columnNames);
+          }  
+	  }
 	   
 	   private String checkForCache(String originalSql) throws SQLException {
 		   // get the cache table name
