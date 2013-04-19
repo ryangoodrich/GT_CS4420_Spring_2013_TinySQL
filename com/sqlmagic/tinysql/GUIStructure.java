@@ -34,7 +34,7 @@ public class GUIStructure extends JPanel {
 	private static int colCounter= 1;
 	private static Vector<String> datavals;
 	private static String [][] dataValues;
-  private static String columnNames[] = { "Column ID", "Name", "Type", "" };
+  private static String columnNames[] = { "Column ID", "Name", "Type"};
 	
 	
 	public static void main(String[] args) throws IOException,SQLException {
@@ -180,7 +180,6 @@ public class GUIStructure extends JPanel {
        datavals.add(Integer.toString(colCounter));
        datavals.add(padString(display_rs.getString(4),32));
        datavals.add(colTypeName);
-       datavals.add(Integer.toString(colType));
        lineOut.append(padString(colTypeName,20) + padString(colType,12));
 
        colCounter++;
@@ -190,7 +189,7 @@ public class GUIStructure extends JPanel {
     colLabel.setText("(" + String.valueOf(colCounter) + ")");
     int row = 0;
     int col = 0;
-  	String [][] dataValues= new String [colCounter][4]; 
+  	String [][] dataValues= new String [colCounter][3]; 
     ListIterator iter = datavals.listIterator();
     CreateState = new StringBuffer(100);
     while (iter.hasNext()) {
@@ -206,7 +205,7 @@ public class GUIStructure extends JPanel {
         		 CreateState.append(", ");
         }
         col++;
-        if (col == 4){
+        if (col == 3){
         	col = 0;
         	row++;
         }
