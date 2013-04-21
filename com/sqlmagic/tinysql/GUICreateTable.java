@@ -2,8 +2,13 @@ package com.sqlmagic.tinysql;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Vector;
+
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -15,6 +20,8 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JComboBox;
+import org.eclipse.wb.swing.FocusTraversalOnArray;
+import java.awt.Component;
 
 
 public class GUICreateTable extends JFrame
@@ -34,7 +41,8 @@ public class GUICreateTable extends JFrame
 	
 	
     public GUICreateTable ()
-    { 
+    {
+    	setTitle("Create Table"); 
 
   		this.getContentPane().setLayout(new BorderLayout() );  
 
@@ -56,10 +64,10 @@ public class GUICreateTable extends JFrame
   		
   		//Labels
   		inputLabel = new JLabel("Table Name: ");
-  		inputLabel.setBounds(150, 15, 100, 30);
+  		inputLabel.setBounds(125, 15, 100, 30);
   		p1.add(inputLabel);
       tableArea = new JTextArea();
-      tableArea.setBounds(250, 15, 125, 30);
+      tableArea.setBounds(211, 19, 125, 30);
       p1.add(tableArea);
       
       colLabel = new JLabel("Define Columns:");
@@ -207,9 +215,7 @@ public class GUICreateTable extends JFrame
   		DTcomboBox_9.addItem("DATE");
   		DTcomboBox_9.setBounds(300,410,100,30);
   		p2.add(DTcomboBox_9);
-  		
-   
-  		this.setVisible(true);
+  		setFocusTraversalPolicy(new FocusTraversalOnArray(new Component[]{tableArea, scrollpane, coltext, coltext_1, coltext_2, coltext_3, coltext_4, coltext_5, coltext_6, coltext_7, coltext_8, coltext_9, DTcomboBox, DTcomboBox_1, DTcomboBox_2, DTcomboBox_3, DTcomboBox_4, DTcomboBox_5, DTcomboBox_6, DTcomboBox_7, DTcomboBox_8, DTcomboBox_9, enterButton, cancelButton}));
   	
   		
   		//Action events for buttons
@@ -248,7 +254,8 @@ public class GUICreateTable extends JFrame
   					// TODO Auto-generated catch block
   					
   					JOptionPane.showMessageDialog(null, "Table Name Can't be Null");
-  					e.printStackTrace();
+  					if(tinySQLGlobals.DEBUG)
+  						e.printStackTrace();
   					
   				}
   					dispose();
@@ -270,6 +277,17 @@ public class GUICreateTable extends JFrame
   		stmt = GUITopLevel.con.createStatement();
   		stmt.executeQuery(inputQuery);
   		
+  		DatabaseMetaData dbMeta = GUITopLevel.con.getMetaData();
+  		ResultSet tables_rs = dbMeta.getTables(null,null,null,null);
+	    Vector tableList = new Vector();
+	    String tableName;
+	      while ( tables_rs.next() )
+	      {
+	         tableName = tables_rs.getString("TABLE_NAME");
+	         if (tableName.charAt(0) != '_')
+	        	 tableList.addElement(tableName);
+	      }
+  		GUITopLevel.setTableList(tableList);
   		
   	 }
 }

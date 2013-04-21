@@ -338,6 +338,7 @@ public class GUITopLevel extends JFrame {
 		panel_1.setLayout(gl_panel_1);
 		contentPane.setLayout(gl_contentPane);
 		
+		
 		createEvents();
 	}
 	
@@ -370,6 +371,10 @@ public class GUITopLevel extends JFrame {
 					dbMeta = con.getMetaData();
 					dbType = dbMeta.getDatabaseProductName();		
 					dbVersion = dbMeta.getDatabaseProductVersion();
+			    	
+					// call a method that takes the tablelist and puts them in the JList
+			    	list.setListData(tableList);
+			    	list.setSelectedIndex(0);
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
 					if(tinySQLGlobals.DEBUG)
@@ -446,10 +451,10 @@ public class GUITopLevel extends JFrame {
 		mntmCreateTable.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				// will be some code here to open the create table form
-				JFrame cframe = new GUICreateTable();
+				GUICreateTable cframe = new GUICreateTable();
 			  cframe.setLocationRelativeTo(null);
 			  cframe.setBounds(90, 90, 600, 400);
-				cframe.setVisible(true);
+				cframe.setVisible(true); 
 				
 			}
 		});
@@ -544,11 +549,6 @@ public class GUITopLevel extends JFrame {
 	    	  lblTablesInDirectory.setText(tableList.size() + " tables"
 	         + " in this directory.");
 	    	  lblTablesInDirectory.setForeground(Color.GREEN);
-	    	  
-	    	// call a method that takes the tablelist and puts them in the JList
-	    	list.setListData(tableList);
-	    	list.setSelectedIndex(0);
-	    	  
 	      }
 	      return conn;
 	   }

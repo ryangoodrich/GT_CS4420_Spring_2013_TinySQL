@@ -50,7 +50,7 @@ public class GUIExecuteSQL extends JPanel {
 		
 		//Labels
 		inputLabel = new JLabel("Enter SQL");
-		inputLabel.setBounds(15, 10, 50, 30);
+		inputLabel.setBounds(15, 10, 70, 30);
 		this.add(inputLabel);
 		outputLabel = new JLabel("Result");
 		outputLabel.setBounds(15, 130, 50, 20);
@@ -81,7 +81,7 @@ public class GUIExecuteSQL extends JPanel {
 		insertButton.setBounds(320,10,70,25);
 		this.add(insertButton);
 		updateButton = new JButton("Update");
-		updateButton.setBounds(390,10,70,25);
+		updateButton.setBounds(390,10,79,25);
 		this.add(updateButton);
 		executeButton = new JButton("Run SQL");
 		executeButton.setBounds(450,100,100,30);
