@@ -408,8 +408,8 @@ public class GUIExecuteSQL extends JPanel {
 		   
 		   // get useful index
 		   int len = sql.length();
-		   int from = sql.indexOf("FROM");
-		   int where = sql.indexOf("WHERE");
+		   int from = sql.toUpperCase().indexOf("FROM");
+		   int where = sql.toUpperCase().indexOf("WHERE");
 		   
 		   // the new select is from the SELECT statment to the FROM statement
 		   String newSQL = sql.substring(0, from).trim();
@@ -440,7 +440,7 @@ public class GUIExecuteSQL extends JPanel {
 		   }
 		   
 		   // compress the rest of the string and append it also
-		   where = sql.indexOf("WHERE");
+		   where = sql.toUpperCase().indexOf("WHERE");
 		   if (where > 0)
 			   cacheTableName += sql.substring(where + 5).replaceAll(" ", "");
 		   
