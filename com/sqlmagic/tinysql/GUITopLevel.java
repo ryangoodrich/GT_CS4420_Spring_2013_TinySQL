@@ -88,7 +88,7 @@ public class GUITopLevel extends JFrame {
 	private static JCheckBox chckbxEnableCaching;
 	public static JLabel lblTimer;
 	
-	
+	private static GUICreateTable cframe;
 	/**
 	 * Launch the application.
 	 */
@@ -338,7 +338,8 @@ public class GUITopLevel extends JFrame {
 		panel_1.setLayout(gl_panel_1);
 		contentPane.setLayout(gl_contentPane);
 		
-		
+		cframe = new GUICreateTable();
+		cframe.setBounds(90, 90, 600, 400);
 		createEvents();
 	}
 	
@@ -451,9 +452,6 @@ public class GUITopLevel extends JFrame {
 		mntmCreateTable.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				// will be some code here to open the create table form
-				GUICreateTable cframe = new GUICreateTable();
-			  cframe.setLocationRelativeTo(null);
-			  cframe.setBounds(90, 90, 600, 400);
 				cframe.setVisible(true); 
 				
 			}

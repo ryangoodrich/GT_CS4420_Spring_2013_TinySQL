@@ -3,12 +3,6 @@ package com.sqlmagic.tinysql;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Vector;
-
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -22,6 +16,12 @@ import java.awt.event.ActionListener;
 import javax.swing.JComboBox;
 import org.eclipse.wb.swing.FocusTraversalOnArray;
 import java.awt.Component;
+
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Vector;
 
 
 public class GUICreateTable extends JFrame
