@@ -70,7 +70,7 @@ public class FieldTokenizer
       {
          nextChar = inputString.charAt(i);
          endPosn = i;
-         if ( nextChar == '\'' | nextChar == '"' )
+         if ( nextChar == '\'' || nextChar == '"' && ( i == 0 || ( i > 0 && inputString.charAt(i - 1) != '\\' ) ) )
          {
 /*
  *          Set the bracketQuoteChar for quotes within a bracket
@@ -81,13 +81,13 @@ public class FieldTokenizer
             {
                if ( bracketQuoteChar == ' ' )
                   bracketQuoteChar = nextChar;
-               else if ( nextChar == bracketQuoteChar )
+               else if ( nextChar == bracketQuoteChar && ( i == 0 || ( i > 0 && inputString.charAt(i - 1) != '\\' ) ) )
                   bracketQuoteChar = ' ';
                 continue;
             }
             if ( quoteChar == ' ' )
                quoteChar = nextChar; 
-            else if ( nextChar == quoteChar )
+            else if ( nextChar == quoteChar && ( i == 0 || ( i > 0 && inputString.charAt(i - 1) != '\\' ) )  )
             {
 /*
  *             A matching quote character has been found.  Check for two
@@ -102,19 +102,19 @@ public class FieldTokenizer
                   quoteChar = ' ';
                }
             }
-         } else if ( nextChar == '(' | nextChar == ')' ) {
+         } else if ( nextChar == '(' || nextChar == ')'  && ( i == 0 || ( i > 0 && inputString.charAt(i - 1) != '\\' ) ) ) {
 /*
  *          Ignore brackets inside quoted strings.
  */
             if ( quoteChar != ' ' | bracketQuoteChar != ' ' ) continue;
-            if ( nextChar == '(' )
+            if ( nextChar == '(' && ( i == 0 || ( i > 0 && inputString.charAt(i - 1) != '\\' ) )  )
             {
                leftBracketCount++;
 /*
  *             If bracket is the separator, return the string before the
  *             left bracket.
  */
-               if ( separator == '(' & leftBracketCount == 1 ) 
+               if ( separator == '(' && leftBracketCount == 1 && ( i == 0 || ( i > 0 && inputString.charAt(i - 1) != '\\' ) ) )  
                {
                   tempString = "";
                   if ( endPosn > startPosn )
@@ -124,15 +124,14 @@ public class FieldTokenizer
                   if ( returnSep ) tempStrings.addElement("(");
                   startPosn = endPosn + 1;
                }
-            } else if ( nextChar == ')' ) {
+            } else if ( nextChar == ')' && ( i == 0 || ( i > 0 && inputString.charAt(i - 1) != '\\' ) ) ) {
 /*
  *             Handle nested sets of brackets.
  */
                rightBracketCount++;
-               if ( leftBracketCount > 0 &
-                    leftBracketCount == rightBracketCount )
+               if ( leftBracketCount > 0 & leftBracketCount == rightBracketCount )
                {
-                  if ( separator == '('  )
+                  if ( separator == '('  && ( i == 0 || ( i > 0 && inputString.charAt(i - 1) != '\\' ) ) )
                   {
 /*
  *                   If bracket is the separator, return the string between the
@@ -155,8 +154,7 @@ public class FieldTokenizer
  *          brackets and we are not within a quoted string (as indicated
  *          by a blank quoteChar value), then build the next output string.
  */
-         } else if ( nextChar == separator & leftBracketCount == 0 &
-                     quoteChar == ' ' ) {
+         } else if ( nextChar == separator && leftBracketCount == 0 && quoteChar == ' ' && ( i == 0 || ( i > 0 && inputString.charAt(i - 1) != '\\' ) ) ) {
            
             tempString = "";
             if ( endPosn > startPosn )
