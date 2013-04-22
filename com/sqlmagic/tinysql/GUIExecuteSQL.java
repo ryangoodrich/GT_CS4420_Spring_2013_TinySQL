@@ -163,7 +163,8 @@ public class GUIExecuteSQL extends JPanel {
 				inputQuery = checkForCache(inputQuery);
             display_rs = stmt.executeQuery(inputQuery);
             String totalTime = ((System.nanoTime() - time) /  1000000) + " ms";
-            System.out.println("Query Time: " + totalTime);
+            if ( tinySQLGlobals.DEBUG )
+            	System.out.println("Query Time: " + totalTime);
             GUITopLevel.lblTimer.setText(totalTime);
             
             if ( display_rs == null )
@@ -184,8 +185,8 @@ public class GUIExecuteSQL extends JPanel {
             for ( i = 0; i < rsColCount; i++ )
             {
                columnNames[i] = meta.getColumnName(i + 1);
-               if (columnNames[i].indexOf("-") > 0)
-            	   columnNames[i] = columnNames[i].substring(columnNames[i].indexOf("-") + 1);
+               if (columnNames[i].indexOf(CACHE_DIVISOR) > 0)
+            	   columnNames[i] = columnNames[i].substring(columnNames[i].indexOf(CACHE_DIVISOR) + 1);
                columnWidths[i] = meta.getColumnDisplaySize(i + 1);
                columnTypes[i] = meta.getColumnType(i + 1);
                columnScales[i] = meta.getScale(i + 1);
@@ -325,7 +326,8 @@ public class GUIExecuteSQL extends JPanel {
           }  
 	  }
 	   
-	   private String checkForCache(String originalSql) throws SQLException {
+	  private String CACHE_DIVISOR = "-";
+	  private String checkForCache(String originalSql) throws SQLException {
 		   // get the cache table name
 		   String[] result = getCacheTableName(originalSql);
 		   String cacheTableName = result[0];
@@ -335,14 +337,15 @@ public class GUIExecuteSQL extends JPanel {
 		   ResultSet tables = GUITopLevel.con.getMetaData().getTables(null,null,null,null);
 		   while (tables.next()) {
 			   if (tables.getString("TABLE_NAME").equals(cacheTableName)) {
-				   System.out.println(newSql);
+				   if ( tinySQLGlobals.DEBUG )
+					   System.out.println(newSql);
 				   return newSql;
 			   }
 		   }
 		   
 		   // no table exists so we need to create one...
 		   // lets take out the select stuff... 
-		   String tmpSql = "SELECT * " + originalSql.substring(originalSql.indexOf("FROM")).trim();
+		   String tmpSql = "SELECT * " + originalSql.substring(originalSql.toUpperCase().indexOf("FROM")).trim();
 		   
 		   // first we need to run the sql, so lets do that
 		   ResultSet allValues = GUITopLevel.con.createStatement().executeQuery(tmpSql);
@@ -359,7 +362,7 @@ public class GUIExecuteSQL extends JPanel {
 		   for (int i = 1; i <= dataSize; i ++) {
 			   // get the name of the column
 			   String tableName = allValuesMeta.getTableName(i);
-			   String columnName = tableName.substring(tableName.indexOf("->") + 2)  + "-" + allValuesMeta.getColumnName(i);
+			   String columnName = tableName.substring(tableName.indexOf("->") + 2)  + CACHE_DIVISOR + allValuesMeta.getColumnName(i);
 			   
 			   // add the column name to the string
 			   insert += columnName;
@@ -383,25 +386,38 @@ public class GUIExecuteSQL extends JPanel {
 		   
 		   // finish off the ) and run it
 		   createTable += ")";
+		   if ( tinySQLGlobals.DEBUG )
+			   System.out.println(createTable);
 		   GUITopLevel.con.createStatement().executeQuery(createTable);
 		   
 		   // then go through all the results and insert it into the table
-		   insert += ") VALUES ('";
+		   insert += ") VALUES ";
+		   ArrayList<String> insertList = new ArrayList<String>();
 		   while (allValues.next()) {
+			   String insertEntry = "(\"";
 			   for (int i = 1; i <= dataSize; i ++) {
-				   insert += allValues.getString(i);
+				   String value = allValues.getString(i);
+				   if (value != null) {
+					   value = value.replaceAll("\\\"", "\\\\\"");
+				   }
+				   insertEntry += value;
+				   
 				   if (i < dataSize)
-					   insert += "','";
+					   insertEntry += "\",\"";
 			   }
-			   insert += "'), (";
+			   insertEntry += "\")";
+			   insertList.add(insertEntry);
 		   }
 		   
-		   insert = insert.substring(0, insert.length() - 3);
-		   GUITopLevel.con.createStatement().executeQuery(insert);
+		   for (String insertEntry : insertList) {
+			   if ( tinySQLGlobals.DEBUG )
+				   System.out.println(insert + insertEntry);
+			   GUITopLevel.con.createStatement().executeQuery(insert + insertEntry);
+		   }
 		   
 		   return newSql;
 	   }
-	   
+	   	   
 	   private String[] getCacheTableName(String sql) {;
 		   // make the whole statment uppercase
 		   sql.toUpperCase();
@@ -415,7 +431,7 @@ public class GUIExecuteSQL extends JPanel {
 		   String newSQL = sql.substring(0, from).trim();
 		   
 		   // create a string for the table name
-		   String cacheTableName = "_"; 
+		   String cacheTableName = where > 0 ? "_" : ""; 
 		   
 		   // get the tables that we are looking at
 		   String tables = sql.substring(from + 4, where > 0 ? where : len);
@@ -431,7 +447,7 @@ public class GUIExecuteSQL extends JPanel {
 				   // replace all the aliasis in the string
 				   sql = sql.replaceAll(key + "\\.", " " + table + ".");
 				   System.out.println(sql);
-				   newSQL = newSQL.replaceAll(key + "\\.", " " + table + "-");
+				   newSQL = newSQL.replaceAll(key + "\\.", " " + table + CACHE_DIVISOR);
 				   System.out.println(newSQL);
 			   }
 			   
@@ -441,8 +457,12 @@ public class GUIExecuteSQL extends JPanel {
 		   
 		   // compress the rest of the string and append it also
 		   where = sql.toUpperCase().indexOf("WHERE");
-		   if (where > 0)
-			   cacheTableName += sql.substring(where + 5).replaceAll(" ", "");
+		   if (where > 0) {
+			   String tmpName = sql.substring(where + 5).replaceAll(" ", "");
+			   tmpName = tmpName.replaceAll("\\)", "");
+			   tmpName = tmpName.replaceAll("\\(", "");
+			   cacheTableName += tmpName;
+		   }
 		   
 		   newSQL += " FROM " + cacheTableName;
 		   
