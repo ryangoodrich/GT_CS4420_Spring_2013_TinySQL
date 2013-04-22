@@ -13,6 +13,7 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -202,11 +203,36 @@ public class GUIExecuteSQL extends JPanel {
             ResultSet table_rs = stmt.executeQuery(inputQuery);
             displayResults(table_rs);
          }
-		 else if (inputQuery.toUpperCase().startsWith("INSERT")| inputQuery.toUpperCase().startsWith("UPDATE")){
-			 stmt.executeUpdate(inputQuery);
-			 JOptionPane.showMessageDialog(null, "Finish Query\n" + inputQuery);	 
+		 else if (inputQuery.toUpperCase().startsWith("INSERT") || inputQuery.toUpperCase().startsWith("UPDATE") || inputQuery.toUpperCase().startsWith("DELETE") ){
+			 try{
+				 stmt.executeUpdate(inputQuery);
+				 JOptionPane.showMessageDialog(null, "Finished Query\n" + inputQuery);	 
+			 }
+			 catch(SQLException e){
+				 JOptionPane.showMessageDialog(getParent(), "Query was unsuccessful");
+			 }
 		 }
-		 
+		 else{
+			 try{
+				 stmt.executeUpdate(inputQuery);
+				 JOptionPane.showMessageDialog(null, "Finished Query\n" + inputQuery);	
+				 
+			 		DatabaseMetaData dbMeta = GUITopLevel.con.getMetaData();
+			  		ResultSet tables_rs = dbMeta.getTables(null,null,null,null);
+				    Vector tableList = new Vector();
+				    String tableName;
+				      while ( tables_rs.next() )
+				      {
+				         tableName = tables_rs.getString("TABLE_NAME");
+				         if (tableName.charAt(0) != '_')
+				        	 tableList.addElement(tableName);
+				      }
+			  		GUITopLevel.setTableList(tableList);
+			 }
+			 catch(SQLException e){
+				 JOptionPane.showMessageDialog(getParent(), "Query was unsuccessful");
+			 }		 
+		}
 		
 	 }
 	
@@ -227,9 +253,9 @@ public class GUIExecuteSQL extends JPanel {
 			   model.addRow(temp);
 		   }
 		   
-		  resultTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-		  TableColumnAdjuster tca = new TableColumnAdjuster(resultTable);
-		  tca.adjustColumns();
+		  resultTable.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
+	//	  TableColumnAdjuster tca = new TableColumnAdjuster(resultTable);
+	//	  tca.adjustColumns();
 	   };
 	
 	   
