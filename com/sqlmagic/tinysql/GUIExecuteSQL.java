@@ -46,7 +46,7 @@ public class GUIExecuteSQL extends JPanel {
 	int rsColCount, i;
 	FileWriter spoolFileWriter = null;
 	String newLine = System.getProperty("line.separator"); 
-	static boolean isTableSelected = (GUITopLevel.selectedTable == null ? false : true);
+	boolean isTableSelected = (GUITopLevel.selectedTable == null ? false : true);
 	
 	
 	public GUIExecuteSQL() {
@@ -309,7 +309,7 @@ public class GUIExecuteSQL extends JPanel {
             ResultSet table_rs = stmt.executeQuery(inputQuery);
             displayResults(table_rs);
          }
-		 else if (inputQuery.toUpperCase().startsWith("INSERT") || inputQuery.toUpperCase().startsWith("UPDATE") || inputQuery.toUpperCase().startsWith("DELETE") ){
+		 else if ((inputQuery.toUpperCase().startsWith("INSERT")) || (inputQuery.toUpperCase().startsWith("UPDATE")) || (inputQuery.toUpperCase().startsWith("DELETE")) ){
 			 try{
 				int num = stmt.executeUpdate(inputQuery);
 				 JOptionPane.showMessageDialog(null, "Finished Query\n" + inputQuery);	 
