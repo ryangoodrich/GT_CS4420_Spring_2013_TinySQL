@@ -194,11 +194,11 @@ public class GUIExecuteSQL extends JPanel {
 		
 		if(GUITopLevel.selectedTable != null){
 			Vector<String> col = getTableColumnNames();
-			columns = col.firstElement();
+			columns = "L." + col.firstElement();
 			for(int i = 1; i < col.size(); i++){
-				columns += ", " + col.get(i);
+				columns += ", " + "L."+col.get(i);
 			}
-			tablename = GUITopLevel.selectedTable;
+			tablename = GUITopLevel.selectedTable + " L";
 		}
 		else{
 			columns = "*";
