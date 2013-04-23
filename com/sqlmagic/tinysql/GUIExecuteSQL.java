@@ -498,9 +498,11 @@ public class GUIExecuteSQL extends JPanel {
 				   table = table.substring(0, space);
 				   // replace all the aliasis in the string
 				   sql = sql.replaceAll(key + "\\.", " " + table + ".");
-				   System.out.println(sql);
+				   if ( tinySQLGlobals.DEBUG )
+					   System.out.println(sql);
 				   newSQL = newSQL.replaceAll(key + "\\.", " " + table + CACHE_DIVISOR);
-				   System.out.println(newSQL);
+				   if ( tinySQLGlobals.DEBUG )
+					   System.out.println(newSQL);
 			   }
 			   
 			   // and save the talbe to the string
