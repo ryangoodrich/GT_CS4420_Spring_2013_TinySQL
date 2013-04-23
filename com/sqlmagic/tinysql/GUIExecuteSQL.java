@@ -46,7 +46,7 @@ public class GUIExecuteSQL extends JPanel {
 	int rsColCount, i;
 	FileWriter spoolFileWriter = null;
 	String newLine = System.getProperty("line.separator"); 
-	boolean isTableSelected = GUITopLevel.selectedTable == null ? false : true;
+	static boolean isTableSelected = (GUITopLevel.selectedTable == null ? false : true);
 	
 	
 	public GUIExecuteSQL() {
@@ -63,15 +63,13 @@ public class GUIExecuteSQL extends JPanel {
 		
 		
 		//Text Area
+		
 	    inputArea = new JTextArea();
 		inputArea.setLineWrap(true);
-		inputArea.setBounds(15, 35, 630, 50);	
-		this.add(inputArea);
-	    //outputArea = new JTextArea();
-	    //outputArea.setEditable(false);
-	    //scrollPane = new JScrollPane(outputArea);
-	    //scrollPane.setBounds(15, 130, 630, 50);
-		//this.add(scrollPane);
+		JScrollPane textScroll = new JScrollPane(inputArea);
+		textScroll.setBounds(15,35,630,50);
+		this.add(textScroll);
+
 		//JTable
 		resultTable = new JTable(new DefaultTableModel(data, columns));
 		resultTable.setPreferredScrollableViewportSize(new Dimension(450,63));
@@ -82,16 +80,16 @@ public class GUIExecuteSQL extends JPanel {
 		
 		//Buttons
 		selectButton = new JButton("Select");
-		selectButton.setBounds(290,10,70,25);
+		selectButton.setBounds(263,10,70,25);
 		this.add(selectButton);
 		insertButton = new JButton("Insert");
-		insertButton.setBounds(360,10,70,25);
+		insertButton.setBounds(336,10,70,25);
 		this.add(insertButton);
 		updateButton = new JButton("Update");
-		updateButton.setBounds(430,10,70,25);
+		updateButton.setBounds(407,10,81,25);
 		this.add(updateButton);
 		deleteButton = new JButton("Delete");
-		deleteButton.setBounds(500,10,70,25);
+		deleteButton.setBounds(490,10,81,25);
 		this.add(deleteButton);
 		executeButton = new JButton("Run SQL");
 		executeButton.setBounds(500,88,100,30);
@@ -104,8 +102,8 @@ public class GUIExecuteSQL extends JPanel {
 				try {
 					displaySelect();
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					if(tinySQLGlobals.DEBUG)
+						e.printStackTrace();
 				}
 			}
 		});
@@ -113,20 +111,35 @@ public class GUIExecuteSQL extends JPanel {
 		
 		updateButton.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent arg0){
-				displayUpdate();
+				try {
+					displayUpdate();
+				} catch (SQLException e) {
+					if(tinySQLGlobals.DEBUG)
+						e.printStackTrace();
+				}
 				
 			}
 		});
 		
 		insertButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				displayInsert();
+				try {
+					displayInsert();
+				} catch (SQLException e) {
+					if(tinySQLGlobals.DEBUG)
+						e.printStackTrace();
+				}
 			}
 		});
 		
 		deleteButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				displayDelete();
+				try {
+					displayDelete();
+				} catch (SQLException e) {
+					if(tinySQLGlobals.DEBUG)
+						e.printStackTrace();
+				}
 			}
 		});
 		
@@ -140,10 +153,10 @@ public class GUIExecuteSQL extends JPanel {
 					try{
 					execute(inputStream);
 					} catch (SQLException e) {
-					// TODO Auto-generated catch block
 					
-					JOptionPane.showMessageDialog(null, "You SQL has some issue");
-					e.printStackTrace();
+					JOptionPane.showMessageDialog(null, "Your SQL has some issue");
+					if(tinySQLGlobals.DEBUG)
+						e.printStackTrace();
 					 
 				}
 			}
@@ -151,31 +164,124 @@ public class GUIExecuteSQL extends JPanel {
 	}
 	
 	
-	public String getTableColumnNames() throws SQLException{
+	public Vector<String> getTableColumnNames() throws SQLException{
 		Connection tmpCon = GUITopLevel.con;
-		ResultSetMetaData meta = tmpCon.getMetaData().getColumns(null,null,GUITopLevel.selectedTable,null).getMetaData();
-		return this.getColumnName(meta)[0];
+		ResultSet rs = tmpCon.getMetaData().getColumns(null,null,GUITopLevel.selectedTable,null);
+		Vector<String> columns = new Vector<String>();
+		while(rs.next()){
+			String c = rs.getString("COLUMN_NAME");
+			columns.add(c);
+		}
+		return columns;		
 	}
 
-	private void displaySelect() throws SQLException{
-		String output = isTableSelected ? "select * from tableName": ("select * from "+ GUITopLevel.selectedTable);
-		inputArea.setText(output);
+	public Vector<String> getTableColumnTypes() throws SQLException{
+		Connection tmpCon = GUITopLevel.con;
+		ResultSet rs = tmpCon.getMetaData().getColumns(null,null,GUITopLevel.selectedTable,null);
+		int col_count = 0; 
+		Vector<String> columns = new Vector<String>();
+		while(rs.next()){
+			String c = rs.getString(6);
+			columns.add(c);
+		}
+		return columns;		
 	}
 	
-	private void displayUpdate(){
-		String output = isTableSelected ? "update (tableName) set        =        where condition" : "update " + GUITopLevel.selectedTable +  " set cell = new cell where conditions";
+	private void displaySelect() throws SQLException{
+		String output;
+		String columns = "";
+		String tablename = "";
+		
+		if(GUITopLevel.selectedTable != null){
+			Vector<String> col = getTableColumnNames();
+			columns = col.firstElement();
+			for(int i = 1; i < col.size(); i++){
+				columns += ", " + col.get(i);
+			}
+			tablename = GUITopLevel.selectedTable;
+		}
+		else{
+			columns = "*";
+			tablename = "tableName";
+		}
+		output = "SELECT " + columns + " FROM " + tablename;
+		
+		inputArea.setText(output);
+		
+	}
+	
+	private void displayUpdate() throws SQLException{
+		String output;
+		String columns;
+		String tablename = "";
+		
+		if(GUITopLevel.selectedTable != null){
+			Vector<String> col = getTableColumnNames();
+			Vector<String> types = getTableColumnTypes();
+			columns = col.firstElement() + "=" + types.firstElement();
+			for(int i = 1; i < col.size(); i++){
+				columns += ", " + col.get(i) + "=" + types.get(i);
+			}
+			tablename = GUITopLevel.selectedTable;
+		}
+		else{
+			columns = " ";
+			tablename = "tableName";
+		}
+		
+		output = "UPDATE " + tablename + " SET " + columns + " \nWHERE " + columns;
 		inputArea.setText(output);
 		
 	}
 	
 	
-	private void displayInsert(){
-		String output = isTableSelected ? "insert into table name (column names) values ( )": "insert into "+(GUITopLevel.selectedTable)+ " (column names) values ( )";
+	private void displayInsert() throws SQLException {
+		String output;
+		String columns;
+		String tablename = "";
+		String values = "";
+		
+		if(GUITopLevel.selectedTable != null){
+			Vector<String> col;
+			Vector<String> types = getTableColumnTypes();
+			col = getTableColumnNames();
+			columns = col.firstElement();
+			values = types.firstElement();
+			for(int i = 1; i < col.size(); i++){
+				columns += ", " + col.get(i);
+				values += ", " + types.get(i);
+			}
+			tablename = GUITopLevel.selectedTable;
+		}
+		else{
+			columns = " columns ";
+			tablename = "tableName";
+		}
+		
+		output = "INSERT INTO " + tablename + "(" + columns + ")" + "\nVALUES (" + values + ")";
 		inputArea.setText(output);
 	}
 	
-	private void displayDelete(){
-		String output = isTableSelected ? "delete from table name where ": "delete (      )  from "+(GUITopLevel.selectedTable)+ " where  (     )   ";
+	private void displayDelete() throws SQLException{
+		String output;
+		String columns = "";
+		String tablename = "";
+
+		if(GUITopLevel.selectedTable != null){
+			Vector<String> col = getTableColumnNames();
+			Vector<String> types = getTableColumnTypes();
+			columns = col.firstElement() + "=" + types.firstElement();
+			for(int i = 1; i < col.size(); i++){
+				columns += ", " + col.get(i) + "=" + types.get(i);
+			}
+			tablename = GUITopLevel.selectedTable;
+		}
+		else{
+			columns = " ";
+			tablename = "tableName";
+		}
+		
+		output = "DELETE FROM " + tablename +  " \nWHERE " +columns;
 		inputArea.setText(output);
 	}
 	
@@ -205,7 +311,7 @@ public class GUIExecuteSQL extends JPanel {
          }
 		 else if (inputQuery.toUpperCase().startsWith("INSERT") || inputQuery.toUpperCase().startsWith("UPDATE") || inputQuery.toUpperCase().startsWith("DELETE") ){
 			 try{
-				 stmt.executeUpdate(inputQuery);
+				int num = stmt.executeUpdate(inputQuery);
 				 JOptionPane.showMessageDialog(null, "Finished Query\n" + inputQuery);	 
 			 }
 			 catch(SQLException e){
@@ -254,8 +360,6 @@ public class GUIExecuteSQL extends JPanel {
 		   }
 		   
 		  resultTable.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
-	//	  TableColumnAdjuster tca = new TableColumnAdjuster(resultTable);
-	//	  tca.adjustColumns();
 	   };
 	
 	   
